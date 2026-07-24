@@ -1,6 +1,8 @@
+import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_widgets/layout/responsive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// 1. CONTEXT EXTENSIONS (Layout, Dimensions & Theme)
 extension UIContextExt on BuildContext {
@@ -8,6 +10,8 @@ extension UIContextExt on BuildContext {
   bool get isMobile => ResponsiveLayout.isMobile(this);
   bool get isTablet => ResponsiveLayout.isTablet(this);
   bool get isDesktop => ResponsiveLayout.isDesktop(this);
+
+  bool get isDark => Theme.of(this).brightness == Brightness.dark;
 
   double get screenWidth => MediaQuery.sizeOf(this).width;
   double get screenHeight => MediaQuery.sizeOf(this).height;
@@ -19,6 +23,57 @@ extension UIContextExt on BuildContext {
 
   BorderRadius responsiveRadius(double mobileRadius, double desktopRadius) =>
       BorderRadius.circular(isMobile ? mobileRadius.r : desktopRadius);
+
+  // --- Typography ---
+  TextStyle get mainHeadingTextStyle => GoogleFonts.poppins(
+    fontSize: isMobile ? 24.sp : 28,
+    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+    fontWeight: FontWeight.w600,
+  );
+
+  TextStyle get headingTextStyle => GoogleFonts.poppins(
+    fontSize: isMobile ? 20.sp : 24,
+    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+    fontWeight: FontWeight.w500,
+  );
+
+  TextStyle get titleStyleActive => GoogleFonts.poppins(
+    fontSize: isMobile ? 19.sp : 22,
+    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+    fontWeight: FontWeight.w600,
+  );
+
+  TextStyle get titleStyleRegular => GoogleFonts.poppins(
+    fontSize: isMobile ? 16.sp : 18,
+    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+    fontWeight: FontWeight.w500,
+  );
+
+  TextStyle get bodyTextStyle => GoogleFonts.poppins(
+    fontSize: isMobile ? 14.sp : 16,
+    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+    fontWeight: FontWeight.w400,
+  );
+
+  TextStyle get subTitleStyle => GoogleFonts.poppins(
+    fontSize: isMobile ? 12.sp : 14,
+    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+    fontWeight: FontWeight.w400,
+  );
+
+  // --- Decorations (Adaptive to Light/Dark Surfaces) ---
+  BoxDecoration get defaultDecoration => BoxDecoration(
+    color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+    borderRadius: BorderRadius.circular(10.r),
+    boxShadow: [
+      BoxShadow(
+        blurRadius: 12.0,
+        spreadRadius: 2,
+        color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+        offset: const Offset(1, 1),
+      ),
+    ],
+  );
 }
 
 /// 2. DATA TYPE EXTENSIONS (Int, String)
@@ -64,7 +119,7 @@ extension StringExtensions on String {
 
   String replaceBackslash() => replaceAll(RegExp(r'\n'), "");
 
-  /// Converts Hex String to Color
+  /// Converts Hex String to Color safely
   Color toColor() {
     try {
       var hexColor = replaceAll("#", "");

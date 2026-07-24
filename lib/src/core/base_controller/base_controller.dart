@@ -1,65 +1,127 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
+import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
+import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:dio/dio.dart';
 
 abstract class BaseController extends GetxController {
   final RxBool isLoading = false.obs;
-  final _isShowingSuccessMessage = false;
+  bool _isShowingSuccessMessage = false;
 
-  Future<void> runWithLoading(Future<void> Function() task, {
-    String message = "",
-  }) async {
+  /// Core wrapper for executing tasks with automated loading state and error handling
+  Future<void> runWithLoading(Future<void> Function() task, {String message = 'Processing...'}) async {
     bool hasError = false;
     _isShowingSuccessMessage = false;
 
     try {
-      WidgetsBinding.instance.addPostFrameCallback(
-            (_) => isLoading(true),
-      ); // Wait until the current UI frame is finished before starting the loader to avoid "setState() during build" errors.
-
+      // Wait until the current UI frame is finished before starting the loader
+      WidgetsBinding.instance.addPostFrameCallback((_) => isLoading(true));
       await task();
-    }
-    onDioException
-    catch (e, stacktrace) {
-    hasError = true;
-
+    } on DioException catch (e, stackTrace) {
+      hasError = true;
+      _handleException(e, stackTrace, isNetworkError: true);
+    } catch (e, stackTrace) {
+      hasError = true;
+      _handleException(e, stackTrace, isNetworkError: false);
+    } finally {
+      // Safely turn off the loader
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        isLoading(false);
+        // Only close active dialogs (like loading overlays) if no error or success dialog took over
+        if (!hasError && !_isShowingSuccessMessage && Get.isDialogOpen == true) {
+          Get.back();
+        }
+      });
     }
   }
 
-  void _handleException(dynamic e, StackTrace stackTrace,
-      {required bool isNetworkError}) {
+  void _handleException(dynamic e, StackTrace stackTrace, {required bool isNetworkError}) {
     debugPrint('--- [BASE CONTROLLER] EXCEPTION CAUGHT ---');
     debugPrint('Type: ${e.runtimeType}');
     debugPrint('Message: ${e.toString()}');
     debugPrint('StackTrace: $stackTrace');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Get.isDialogOpen == true) {
-        Get.back();
-      }
+      String cleanMessage = 'An unexpected error occurred.';
 
-      String cleanMessage = e.message ?? "An unexpected error occurred.";
       if (isNetworkError && e is DioException) {
         cleanMessage = _parseNetworkError(e);
       } else {
-        cleanMessage = e.toString().replaceAll('Exception', '').trim();
+        cleanMessage = e.toString().replaceAll('Exception: ', '').trim();
       }
+
+      // Delegating to our centralized DialogHelper
+      DialogHelper.showError(message: cleanMessage);
     });
   }
 
   String _parseNetworkError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout) {
-      return 'Connection timed out. Please check your network stability.';
-    } else if (e.response != null && e.response?.data != null) {
+    if (e.type == DioExceptionType.connectionTimeout) {
+      return AppStrings.connectionTimeout;
+    } else if (e.type == DioExceptionType.receiveTimeout) {
+      return AppStrings.receiveTimeout;
+    } else if (e.type == DioExceptionType.sendTimeout) {
+      return AppStrings.sendTimeout;
+    } else if (e.response != null) {
       // Attempt to extract server-provided error message payload
       try {
-        if (e.response!.data is Map && e.response!.data['message'] != null) {
-          return e.response!.data['message'].toString();
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          return data['message'].toString();
         }
       } catch (_) {}
-      return 'Server error: ${e.response?.statusCode}';
+
+      // Standardize common HTTP status codes
+      switch (e.response?.statusCode) {
+        case 400:
+          return AppStrings.msg400;
+        case 401:
+          return AppStrings.msg401;
+        case 403:
+          return AppStrings.msg403;
+        case 404:
+          return AppStrings.msg404;
+        case 405:
+          return AppStrings.msg405;
+        case 408:
+          return AppStrings.msg408;
+        case 409:
+          return AppStrings.msg409;
+        case 413:
+          return AppStrings.msg413;
+        case 415:
+          return AppStrings.msg415;
+        case 422:
+          return AppStrings.msg422;
+        case 429:
+          return AppStrings.msg429;
+        case 500:
+          return AppStrings.msg500;
+        case 502:
+          return AppStrings.msg502;
+        case 503:
+          return AppStrings.msg503;
+        case 504:
+          return AppStrings.msg504;
+        case 505:
+          return AppStrings.msg505;
+        case 522:
+          return AppStrings.msg522;
+        default:
+          return '${AppStrings.errorMsgDefault}: ${e.response?.statusCode}';
+      }
     }
-    return 'A network error occurred. Please try again.';
+    return 'A network error occurred. Please check your internet connection.';
+  }
+
+  void successMessage({required String title, required String message, VoidCallback? onPressed}) {
+    _isShowingSuccessMessage = true;
+    DialogHelper.showSuccess(title: title, message: message, onPressed: onPressed);
+  }
+
+  void errorMessage({String? title, required String message, VoidCallback? onPressed}) {
+    DialogHelper.showError(title: title, message: message, onPressed: onPressed);
   }
 }
