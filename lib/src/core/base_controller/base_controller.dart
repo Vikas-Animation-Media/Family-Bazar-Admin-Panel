@@ -5,6 +5,7 @@ import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 abstract class BaseController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -12,12 +13,15 @@ abstract class BaseController extends GetxController {
 
   /// Core wrapper for executing tasks with automated loading state and error handling
   Future<void> runWithLoading(Future<void> Function() task, {String message = 'Processing...'}) async {
+    if (isClosed) return; // Abort immediately if the controller is already destroyed
     bool hasError = false;
     _isShowingSuccessMessage = false;
 
     try {
       // Wait until the current UI frame is finished before starting the loader
-      WidgetsBinding.instance.addPostFrameCallback((_) => isLoading(true));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!isClosed) isLoading(true); // Double-check before mutating state in a new frame
+      });
       await task();
     } on DioException catch (e, stackTrace) {
       hasError = true;
@@ -26,8 +30,10 @@ abstract class BaseController extends GetxController {
       hasError = true;
       _handleException(e, stackTrace, isNetworkError: false);
     } finally {
-      // Safely turn off the loader
+      if (isClosed) return; // defensive check before mutating UI state after a long-running async task
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (isClosed) return;
+
         isLoading(false);
         // Only close active dialogs (like loading overlays) if no error or success dialog took over
         if (!hasError && !_isShowingSuccessMessage && Get.isDialogOpen == true) {
@@ -38,12 +44,23 @@ abstract class BaseController extends GetxController {
   }
 
   void _handleException(dynamic e, StackTrace stackTrace, {required bool isNetworkError}) {
+    if (isClosed) return;
+
+    Sentry.captureException(
+      e,
+      stackTrace: stackTrace,
+      withScope: (scope) {
+        scope.setTag('error_type', isNetworkError ? 'network' : 'business_logic');
+        scope.setContexts('Controller Context', {'controller': runtimeType.toString()});
+      },
+    );
     debugPrint('--- [BASE CONTROLLER] EXCEPTION CAUGHT ---');
     debugPrint('Type: ${e.runtimeType}');
     debugPrint('Message: ${e.toString()}');
     debugPrint('StackTrace: $stackTrace');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
       String cleanMessage = 'An unexpected error occurred.';
 
       if (isNetworkError && e is DioException) {

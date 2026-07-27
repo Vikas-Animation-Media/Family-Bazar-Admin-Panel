@@ -5,37 +5,54 @@ import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/initial_bindings/initial_bindings.dart';
 import 'package:family_bazar_admin_panel/src/core/theme/app_theme.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/startup/app_initializer.dart';
-import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
-void main() async {
+void main() {
+  // Global boundary for all asynchronous Dart errors
   runZonedGuarded(
     () async {
-      try {
-        WidgetsFlutterBinding.ensureInitialized();
+      await AppInitializer.init();
 
-        /// Global UI Error Handling
-        FlutterError.onError = (FlutterErrorDetails details) {
-          FlutterError.presentError(details);
-          debugPrint('==================================================');
-          debugPrint('--- [CRITICAL FATAL] FLUTTER UI EXCEPTION ---');
-          debugPrint(details.exceptionAsString());
-          debugPrint(details.stack?.toString());
-          debugPrint('==================================================');
-        };
+      /// Global UI Error Handling
+      FlutterError.onError = (FlutterErrorDetails details) {
+        FlutterError.presentError(details);
+        Sentry.captureException(
+          details.exception,
+          stackTrace: details.stack,
+          withScope: (scope) => scope.setTag('error_type', 'flutter_ui_error'),
+        );
+        debugPrint('==================================================');
+        debugPrint('--- [CRITICAL FATAL] FLUTTER UI EXCEPTION ---');
+        debugPrint(details.exceptionAsString());
+        debugPrint(details.stack?.toString());
+        debugPrint('==================================================');
+      };
 
-        await AppInitializer.init();
-        await Get.putAsync<StorageService>(() async => await StorageService().init(), permanent: true);
-        runApp(const FamilyBazarAdminApp());
-      } catch (e, stackTrace) {
-        debugPrint('--- [CRITICAL FATAL] MAIN INITIALIZATION FAILED ---');
-        debugPrint(e.toString());
-        debugPrint(stackTrace.toString());
-      }
+      PlatformDispatcher.instance.onError = (error, stackTrace) {
+        Sentry.captureException(
+          error,
+          stackTrace: stackTrace,
+          withScope: (scope) => scope.setTag('error_type', 'platform_dispatcher'),
+        );
+        return true;
+      };
+
+      await SentryFlutter.init((options) {
+        options.dsn = 'https://67e8dcb99bd741608a3e426d4cbd751d@o4505270769090560.ingest.us.sentry.io/4511790284341248';
+        options.tracesSampleRate = 1.0; // Sample all traces
+        options.environment = kReleaseMode ? 'production' : 'development';
+      }, appRunner: () => runApp(const FamilyBazarAdminApp()));
     },
-    (error, stackTrace) {
+    (error, stackTrace) async {
+      await Sentry.captureException(
+        error,
+        stackTrace: stackTrace,
+        withScope: (scope) => scope.setTag('error_type', 'unhandled_async_error'),
+      );
       debugPrint('==================================================');
       debugPrint('--- [CRITICAL FATAL] UNHANDLED ASYNC EXCEPTION ---');
       debugPrint(error.toString());
@@ -51,7 +68,7 @@ class FamilyBazarAdminApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-      designSize: const Size(400, 850), // Mobile baseline (400x850).
+      designSize: const Size(1440, 900), // Standard Desktop Base Resolution
       minTextAdapt: true,
       splitScreenMode: true,
       useInheritedMediaQuery: true, // Ensures the app allows proper resizing logic when browser window changes
@@ -62,19 +79,24 @@ class FamilyBazarAdminApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeMode.system,
-          initialRoute: 'AppRoutes.initial',
-          initialBinding: InitialBindings(),
           scrollBehavior: const MaterialScrollBehavior().copyWith(
-            dragDevices: {
-              PointerDeviceKind.mouse,
-              PointerDeviceKind.touch,
-              PointerDeviceKind.stylus,
-              PointerDeviceKind.trackpad,
-            },
+            dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch, PointerDeviceKind.stylus, PointerDeviceKind.trackpad},
             physics: const BouncingScrollPhysics(),
           ),
+          initialRoute: 'AppRoutes.initial',
+          initialBinding: InitialBindings(),
           getPages: [],
           defaultTransition: Transition.fadeIn,
+          // Temporary placeholder until routing is active
+          home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+
+          builder: (context, widget) {
+            // [Proactive Styling] Locks global text scaling so user browser settings don't destroy your layout
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
+              child: widget!,
+            );
+          },
         );
       },
     );

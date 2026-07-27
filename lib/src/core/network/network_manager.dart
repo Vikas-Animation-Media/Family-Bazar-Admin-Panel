@@ -5,9 +5,10 @@ import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.da
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 class NetworkManager extends GetxController {
-  final RxInt connectionType = 0.obs; // (0 = None, 1 = Wifi, 2 = Mobile)
+  final RxInt connectionType = 0.obs; // (0 = None, 1 = Wifi, 2 = Mobile/Ethernet)
 
   // Hardware connectivity instance and background listener
   final Connectivity _connectivity = Connectivity();
@@ -22,6 +23,11 @@ class NetworkManager extends GetxController {
     _streamSubscription = _connectivity.onConnectivityChanged.listen(
       _updateConnectionStatus,
       onError: (Object error, StackTrace stackTrace) {
+        Sentry.captureException(
+          Exception('Network Stream Error: $error'),
+          stackTrace: stackTrace,
+          withScope: (scope) => scope.setTag('layer', 'network_manager'),
+        );
         debugPrint('--- [CRITICAL] Network Stream Error ---');
         debugPrint(error.toString());
         debugPrint(stackTrace.toString());
@@ -34,10 +40,20 @@ class NetworkManager extends GetxController {
       final result = await _connectivity.checkConnectivity();
       _updateConnectionStatus(result);
     } on PlatformException catch (e, stackTrace) {
+      Sentry.captureException(
+        Exception('PlatformException: Network Check Failed: $e'),
+        stackTrace: stackTrace,
+        withScope: (scope) => scope.setTag('layer', 'network_manager'),
+      );
       debugPrint('--- [CRITICAL] PlatformException: Network Check Failed ---');
       debugPrint(e.toString());
       debugPrint(stackTrace.toString());
     } catch (e, stackTrace) {
+      Sentry.captureException(
+        Exception('Unknown Error: Network Check Failed: $e'),
+        stackTrace: stackTrace,
+        withScope: (scope) => scope.setTag('layer', 'network_manager'),
+      );
       debugPrint('--- [CRITICAL] Unknown Error: Network Check Failed ---');
       debugPrint(e.toString());
       debugPrint(stackTrace.toString());
@@ -45,7 +61,10 @@ class NetworkManager extends GetxController {
   }
 
   void _updateConnectionStatus(List<ConnectivityResult> connectivityResultList) {
+    if (isClosed) return; // Abort immediately if the controller is already destroyed
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
+
       if (connectivityResultList.contains(ConnectivityResult.none)) {
         connectionType.value = 0;
         DialogHelper.showOfflineDialog(); // Global alert when offline
@@ -53,14 +72,13 @@ class NetworkManager extends GetxController {
         // User is back online
         if (connectivityResultList.contains(ConnectivityResult.wifi)) {
           connectionType.value = 1;
-        } else if (connectivityResultList.contains(ConnectivityResult.mobile)) {
+        } else if (connectivityResultList.contains(ConnectivityResult.mobile) ||
+            connectivityResultList.contains(ConnectivityResult.ethernet) ||
+            connectivityResultList.contains(ConnectivityResult.vpn) ||
+            connectivityResultList.contains(ConnectivityResult.other)) {
           connectionType.value = 2;
         }
-
-        // Dismiss the Alert Box if it's currently showing
-        if (Get.isDialogOpen == true) {
-          Get.back();
-        }
+        DialogHelper.dismissOfflineDialog(); // Dismiss the Alert Box if it's currently showing
       }
     });
   }

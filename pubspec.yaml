@@ -41,6 +41,7 @@ dependencies:
   get: ^4.7.3
   dio: ^5.10.0
   connectivity_plus: ^7.3.0
+  sentry_flutter: ^8.14.2
 
 dev_dependencies:
   flutter_test:

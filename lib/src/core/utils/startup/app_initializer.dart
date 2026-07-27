@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 class AppInitializer {
   AppInitializer._();
@@ -6,16 +7,28 @@ class AppInitializer {
   static Future<void> init() async {
     try {
       WidgetsFlutterBinding.ensureInitialized(); // 1. Mandatory requirement before using SystemChrome or native platform channels
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          message: 'Web App Core Initialization Completed Safely',
+          category: 'system.boot',
+          level: SentryLevel.info,
+        ),
+      );
       debugPrint('--- [SYSTEM] Web App Core Initialization Completed Safely ---');
     } catch (e, stackTrace) {
+      // Capture fatal startup crashes instantly before passing to global guard
+      Sentry.captureException(
+        Exception('CRITICAL FATAL: Web App Initialization Exception - $e'),
+        stackTrace: stackTrace,
+        withScope: (scope) => scope.setTag('layer', 'app_initializer'),
+      );
       debugPrint('==================================================');
       debugPrint('--- [CRITICAL FATAL] WEB APP INITIALIZATION EXCEPTION ---');
       debugPrint('Exception: ${e.toString()}');
       debugPrint('StackTrace: ${stackTrace.toString()}');
       debugPrint('==================================================');
 
-      // Rethrow to allow the main.dart runZonedGuarded boundary to catch and log the failure.
-      rethrow;
+      rethrow; // Rethrow to allow the main.dart runZonedGuarded boundary to catch and log the failure.
     }
   }
 }
