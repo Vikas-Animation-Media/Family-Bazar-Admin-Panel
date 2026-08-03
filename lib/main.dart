@@ -87,6 +87,12 @@ class FamilyBazarAdminApp extends StatelessWidget {
           initialRoute: AppPages.initial,
           initialBinding: InitialBindings(),
           getPages: AppPages.routes,
+          unknownRoute: GetPage(
+            name: '/not-found',
+            page: () => const Scaffold(
+              body: Center(child: Text('404 - Route Not Found')),
+            ),
+          ),
           defaultTransition: Transition.fadeIn,
           builder: (context, widget) {
             // [Proactive Styling] Locks global text scaling so user browser settings don't destroy your layout

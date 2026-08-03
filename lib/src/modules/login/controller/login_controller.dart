@@ -1,4 +1,5 @@
 import 'package:family_bazar_admin_panel/src/core/base_controller/base_controller.dart';
+import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/device/device_meta_service.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
@@ -17,7 +18,7 @@ class LoginController extends BaseController {
 
   // --- UI CONTROLLERS & KEYS ---
   final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
-  final TextEditingController userNameController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   // --- REACTIVE STATE VARIABLES ---
@@ -42,7 +43,7 @@ class LoginController extends BaseController {
         message: 'User initiated administrative login attempt',
         category: 'auth.controller',
         level: SentryLevel.info,
-        data: {'username': userNameController.text.trim()},
+        data: {'username': usernameController.text.trim()},
       ),
     );
 
@@ -63,7 +64,7 @@ class LoginController extends BaseController {
       if (isClosed) return;
 
       final response = await _loginRepository.fetchLoginUser(
-        username: userNameController.text.trim(),
+        username: usernameController.text.trim(),
         password: passwordController.text.trim(),
         firebaseToken: metaData['firebase_token'] as String? ?? '',
         latitude: metaData['latitude'] as String? ?? '',
@@ -79,9 +80,7 @@ class LoginController extends BaseController {
           message: response.message.isNotEmpty ? response.message : 'Login Successful!',
           title: 'Welcome Back',
         );
-
-        // Transition to enterprise dashboard (Adjust route string to match your AppRoutes constants)
-        // Get.offAllNamed('/dashboard');
+        Get.offAllNamed(AppRoutes.dashboard);
       } else {
         passwordController.clear(); // Clear password on failure
         DialogHelper.showError(message: 'Authentication failed: No access token received from server.');
@@ -91,7 +90,7 @@ class LoginController extends BaseController {
 
   @override
   void onClose() {
-    userNameController.dispose();
+    usernameController.dispose();
     passwordController.dispose();
     super.onClose();
   }

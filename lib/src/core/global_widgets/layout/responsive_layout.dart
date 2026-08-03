@@ -5,8 +5,25 @@ class ResponsiveLayout extends StatelessWidget {
   final Widget desktop;
   final Widget mobile;
   final Widget? tablet;
+  final Color? backgroundColor;
+  final PreferredSizeWidget? appBar;
+  final Widget? drawer;
+  final Widget? endDrawer;
+  final Widget? floatingActionButton;
+  final bool useSafeArea;
 
-  const ResponsiveLayout({super.key, required this.desktop, required this.mobile, this.tablet});
+  const ResponsiveLayout({
+    super.key,
+    required this.desktop,
+    required this.mobile,
+    this.tablet,
+    this.backgroundColor,
+    this.appBar,
+    this.drawer,
+    this.endDrawer,
+    this.floatingActionButton,
+    this.useSafeArea = true,
+  });
 
   /// Evaluates screen width.
   /// Uses [MediaQuery.sizeOf] to prevent unnecessary rebuilds triggered by non-size
@@ -21,20 +38,28 @@ class ResponsiveLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // LayoutBuilder ensures the widget responds to parent constraints rather than
-    // global screen size, allowing safe nesting without layout overflow crashes.
-    return LayoutBuilder(
+    Widget bodyContent = LayoutBuilder(
       builder: (context, constraints) {
         final double maxWidth = constraints.maxWidth;
-
-        if(maxWidth >= AppConstants.tabletBreakpoint) {
+        if (maxWidth >= AppConstants.tabletBreakpoint) {
           return desktop;
         } else if (maxWidth >= AppConstants.mobileBreakpoint) {
           return tablet ?? desktop;
         } else {
           return mobile;
         }
-      }
+      },
+    );
+
+    if (useSafeArea) bodyContent = SafeArea(child: bodyContent);
+
+    return Scaffold(
+      // backgroundColor: backgroundColor ?? Colors.white,
+      appBar: appBar,
+      drawer: drawer,
+      endDrawer: endDrawer,
+      floatingActionButton: floatingActionButton,
+      body: bodyContent,
     );
   }
 }

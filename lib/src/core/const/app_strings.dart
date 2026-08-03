@@ -1,5 +1,8 @@
-class AppStrings {
-  AppStrings._();
+import 'package:flutter/foundation.dart';
+
+@immutable
+abstract final class AppStrings {
+  const AppStrings._();
 
   /// GENERAL
   static const String appName = "Family Bazar Admin Panel";
@@ -12,13 +15,13 @@ class AppStrings {
 
   /// AUTH
   static const String adminLogin = "Admin Login";
+  static const String welcomeMsg = "Welcome Back";
   static const String username = "Username";
   static const String password = "Password";
   static const String selectRole = "Select Role";
   static const String login = "LOGIN";
   static const String requiredField = "Required";
-  static const String loginDisclaimer = '''By logging in you agree to record your IP and location info for security monitoring, 
-  administrative access, and audit compliance.''';
+  static const String loginDisclaimer = '''By logging in you agree to record your IP and location info for security reason.''';
 
   ///Exception Messages
   static const String socketException = "SocketException: No internet connection";

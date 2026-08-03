@@ -1,4 +1,6 @@
+import 'package:family_bazar_admin_panel/src/core/const/app_assets.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
+import 'package:family_bazar_admin_panel/src/core/global_widgets/layout/responsive_layout.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/controller/login_controller.dart';
 import 'package:flutter/material.dart';
@@ -9,87 +11,90 @@ class LoginView extends GetView<LoginController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(50, 0), vertical: 24.0),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: context.responsiveWidth(context.screenWidth * 2.5, 450)),
-            child: Container(
-              decoration: context.defaultDecoration,
-              padding: EdgeInsets.all(context.responsiveSize(50, 40)),
-              child: AutofillGroup(
-                child: Form(
-                  key: controller.loginFormKey,
-                  child: Column(
-                    mainAxisSize: .min,
-                    crossAxisAlignment: .stretch,
-                    children: [
-                      // LOGO & TITLE
-                      Icon(
-                        Icons.admin_panel_settings_rounded,
-                        size: context.responsiveSize(160, 80),
-                        color: Theme.of(context).colorScheme.primary,
+    return ResponsiveLayout(
+      desktop: _LoginContent(controller: controller),
+      mobile: _LoginContent(controller: controller),
+    );
+  }
+}
+
+class _LoginContent extends StatelessWidget {
+  final LoginController controller;
+
+  const _LoginContent({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(50, 0), vertical: context.responsiveHeight(24, 24)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: context.responsiveWidth(context.screenWidth * 2.5, 450)),
+          child: Container(
+            decoration: context.defaultDecoration,
+            padding: .symmetric(horizontal: context.responsiveWidth(50, 40), vertical: context.responsiveHeight(24, 24)),
+            child: AutofillGroup(
+              child: Form(
+                key: controller.loginFormKey,
+                child: Column(
+                  mainAxisSize: .min,
+                  crossAxisAlignment: .stretch,
+                  children: [
+                    RepaintBoundary(
+                      child: Image.asset(
+                        AppAssets.appLogo,
+                        height: context.responsiveHeight(160, 280),
+                        width: context.responsiveWidth(160, 280),
+                        fit: BoxFit.contain,
+                        semanticLabel: 'Family Bazar Admin Logo',
                       ),
-                      SizedBox(height: context.responsiveHeight(16, 24)),
-                      Text(AppStrings.adminLogin, textAlign: TextAlign.center, style: context.mainHeadingTextStyle),
-                      SizedBox(height: context.responsiveHeight(32, 40)),
-                
-                      // USERNAME FIELD
-                      TextFormField(
-                        controller: controller.userNameController,
-                        style: context.bodyTextStyle,
-                        textInputAction: .next,
-                        autofillHints: const [AutofillHints.username],
+                    ),
+                    // SizedBox(height: context.responsiveHeight(16, 12)),
+                    Text(AppStrings.adminLogin, style: context.titleStyleActive, textAlign: TextAlign.center),
+                    SizedBox(height: context.responsiveHeight(8, 6)),
+
+                    // USERNAME FIELD
+                    TextFormField(
+                      controller: controller.usernameController,
+                      autofillHints: const [AutofillHints.username],
+                      decoration: InputDecoration(labelText: AppStrings.username, prefixIcon: const Icon(Icons.person_outline)),
+                      validator: (value) => (value == null || value.trim().isEmpty) ? AppStrings.requiredField : null,
+                    ),
+                    SizedBox(height: context.responsiveHeight(16, 12)),
+
+                    // PASSWORD FIELD
+                    Obx(
+                      () => TextFormField(
+                        controller: controller.passwordController,
+                        obscureText: !controller.isPasswordVisible.value,
+                        autofillHints: const [AutofillHints.password],
                         decoration: InputDecoration(
-                          labelText: AppStrings.username,
-                          labelStyle: context.bodyTextStyle,
-                          prefixIcon: const Icon(Icons.person_outline),
-                          border: OutlineInputBorder(borderRadius: context.responsiveRadius(10, 10)),
+                          labelText: AppStrings.password,
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(controller.isPasswordVisible.value ? Icons.visibility : Icons.visibility_off),
+                            onPressed: controller.togglePasswordVisibility,
+                          ),
                         ),
                         validator: (value) => (value == null || value.trim().isEmpty) ? AppStrings.requiredField : null,
                       ),
-                      SizedBox(height: context.responsiveHeight(24, 24)),
-                
-                      // PASSWORD FIELD
-                      Obx(
-                        () => TextFormField(
-                          controller: controller.passwordController,
-                          obscureText: !controller.isPasswordVisible.value,
-                          style: context.bodyTextStyle,
-                          textInputAction: .done,
-                          autofillHints: const [AutofillHints.password],
-                          onFieldSubmitted: (_) => controller.login(),
-                          decoration: InputDecoration(
-                            labelText: AppStrings.password,
-                            labelStyle: context.bodyTextStyle,
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            border: OutlineInputBorder(borderRadius: context.responsiveRadius(10, 10)),
-                            suffixIcon: IconButton(
-                              icon: Icon(controller.isPasswordVisible.value ? Icons.visibility : Icons.visibility_off),
-                              onPressed: controller.togglePasswordVisibility,
-                            ),
-                          ),
-                          validator: (value) => (value == null || value.trim().isEmpty) ? AppStrings.requiredField : null,
-                        ),
+                    ),
+                    SizedBox(height: context.responsiveHeight(16, 20)),
+
+                    // SECURITY DISCLAIMER
+                    Text(AppStrings.loginDisclaimer, style: context.subTitleStyle, textAlign: TextAlign.center),
+                    SizedBox(height: context.responsiveHeight(32, 40)),
+
+                    // SUBMIT BUTTON
+                    ElevatedButton(
+                      onPressed: controller.login,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: context.responsiveHeight(16, 20)),
+                        shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(12, 8)),
                       ),
-                      SizedBox(height: context.responsiveHeight(16, 20)),
-                
-                      // SECURITY DISCLAIMER
-                      Text(AppStrings.loginDisclaimer, style: context.subTitleStyle, textAlign: TextAlign.center),
-                      SizedBox(height: context.responsiveHeight(32, 40)),
-                
-                      // SUBMIT BUTTON
-                      ElevatedButton(
-                        onPressed: controller.login,
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: context.responsiveHeight(16, 20)),
-                          shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(12, 8)),
-                        ),
-                        child: Text(AppStrings.login, style: context.titleStyleActive.copyWith(color: Colors.white)),
-                      ),
-                    ],
-                  ),
+                      child: Text(AppStrings.login, style: context.titleStyleActive.copyWith(color: Colors.white)),
+                    ),
+                  ],
                 ),
               ),
             ),
