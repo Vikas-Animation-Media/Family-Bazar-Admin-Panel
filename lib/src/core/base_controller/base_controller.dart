@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
+import 'package:family_bazar_admin_panel/src/core/network/network_exception.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -45,7 +46,6 @@ abstract class BaseController extends GetxController {
 
   void _handleException(dynamic e, StackTrace stackTrace, {required bool isNetworkError}) {
     if (isClosed) return;
-
     Sentry.captureException(
       e,
       stackTrace: stackTrace,
@@ -61,10 +61,10 @@ abstract class BaseController extends GetxController {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (isClosed) return;
-      String cleanMessage = 'An unexpected error occurred.';
+      String cleanMessage = AppStrings.unexpectedError;
 
       if (isNetworkError && e is DioException) {
-        cleanMessage = _parseNetworkError(e);
+        cleanMessage = NetworkExceptions.fromDioException(e).message;
       } else {
         cleanMessage = e.toString().replaceAll('Exception: ', '').trim();
       }
@@ -74,71 +74,14 @@ abstract class BaseController extends GetxController {
     });
   }
 
-  String _parseNetworkError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout) {
-      return AppStrings.connectionTimeout;
-    } else if (e.type == DioExceptionType.receiveTimeout) {
-      return AppStrings.receiveTimeout;
-    } else if (e.type == DioExceptionType.sendTimeout) {
-      return AppStrings.sendTimeout;
-    } else if (e.response != null) {
-      // Attempt to extract server-provided error message payload
-      try {
-        final data = e.response!.data;
-        if (data is Map && data['message'] != null) {
-          return data['message'].toString();
-        }
-      } catch (_) {}
-
-      // Standardize common HTTP status codes
-      switch (e.response?.statusCode) {
-        case 400:
-          return AppStrings.msg400;
-        case 401:
-          return AppStrings.msg401;
-        case 403:
-          return AppStrings.msg403;
-        case 404:
-          return AppStrings.msg404;
-        case 405:
-          return AppStrings.msg405;
-        case 408:
-          return AppStrings.msg408;
-        case 409:
-          return AppStrings.msg409;
-        case 413:
-          return AppStrings.msg413;
-        case 415:
-          return AppStrings.msg415;
-        case 422:
-          return AppStrings.msg422;
-        case 429:
-          return AppStrings.msg429;
-        case 500:
-          return AppStrings.msg500;
-        case 502:
-          return AppStrings.msg502;
-        case 503:
-          return AppStrings.msg503;
-        case 504:
-          return AppStrings.msg504;
-        case 505:
-          return AppStrings.msg505;
-        case 522:
-          return AppStrings.msg522;
-        default:
-          return '${AppStrings.errorMsgDefault}: ${e.response?.statusCode}';
-      }
-    }
-    return 'A network error occurred. Please check your internet connection.';
-  }
-
   void successMessage({required String title, required String message, VoidCallback? onPressed}) {
+    if(isClosed) return;
     _isShowingSuccessMessage = true;
     DialogHelper.showSuccess(title: title, message: message, onPressed: onPressed);
   }
 
   void errorMessage({String? title, required String message, VoidCallback? onPressed}) {
+    if(isClosed) return;
     DialogHelper.showError(title: title, message: message, onPressed: onPressed);
   }
 }

@@ -4,7 +4,10 @@ import 'package:get_storage/get_storage.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class StorageService extends GetxService {
-  late final GetStorage _box;
+  late GetStorage _box;
+  StorageService() {
+    _box = GetStorage();
+  }
 
   Future<StorageService> init() async {
     try {

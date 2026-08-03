@@ -26,7 +26,7 @@ extension UIContextExt on BuildContext {
 
   // --- Typography ---
   TextStyle get mainHeadingTextStyle => GoogleFonts.poppins(
-    fontSize: isMobile ? 24.sp : 28,
+    fontSize: isMobile ? 72.sp : 28,
     color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
     fontWeight: FontWeight.w600,
   );
@@ -38,7 +38,7 @@ extension UIContextExt on BuildContext {
   );
 
   TextStyle get titleStyleActive => GoogleFonts.poppins(
-    fontSize: isMobile ? 19.sp : 22,
+    fontSize: isMobile ? 44.sp : 22,
     color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
     fontWeight: FontWeight.w600,
   );
@@ -50,13 +50,13 @@ extension UIContextExt on BuildContext {
   );
 
   TextStyle get bodyTextStyle => GoogleFonts.poppins(
-    fontSize: isMobile ? 14.sp : 16,
+    fontSize: isMobile ? 50.sp : 16,
     color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
     fontWeight: FontWeight.w400,
   );
 
   TextStyle get subTitleStyle => GoogleFonts.poppins(
-    fontSize: isMobile ? 12.sp : 14,
+    fontSize: isMobile ? 40.sp : 14,
     color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
     fontWeight: FontWeight.w400,
   );
@@ -64,12 +64,12 @@ extension UIContextExt on BuildContext {
   // --- Decorations (Adaptive to Light/Dark Surfaces) ---
   BoxDecoration get defaultDecoration => BoxDecoration(
     color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-    borderRadius: BorderRadius.circular(10.r),
+    borderRadius: BorderRadius.circular(20.r),
     boxShadow: [
       BoxShadow(
         blurRadius: 12.0,
         spreadRadius: 2,
-        color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
         offset: const Offset(1, 1),
       ),
     ],
