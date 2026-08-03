@@ -65,6 +65,7 @@ extension UIContextExt on BuildContext {
   BoxDecoration get defaultDecoration => BoxDecoration(
     color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
     borderRadius: BorderRadius.circular(20.r),
+    border: Border.all(color: AppColors.primaryBrandOrange),
     boxShadow: [
       BoxShadow(
         blurRadius: 12.0,

@@ -1,3 +1,4 @@
+import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/core/network/network_manager.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
 import 'package:flutter/material.dart';
@@ -11,9 +12,11 @@ class InitialBindings extends Bindings {
       // This ensures that the app will not proceed until Storage is loaded into memory.
       Get.putAsync<StorageService>(() async => await StorageService().init(), permanent: true);
       Get.put<NetworkManager>(NetworkManager(), permanent: true); // Global Network Monitoring: Locked permanently.
+      Get.put<ApiClient>(ApiClient(), permanent: true); // Global API Client
+      Get.put<StorageService>(StorageService(), permanent: true); // Global Storage Service
       Sentry.addBreadcrumb(
         Breadcrumb(
-          message: 'Global Dependencies Injected Successfully',
+          message: '[SYSTEM]: Global Dependencies Injected Successfully',
           category: 'system.bindings',
           level: SentryLevel.info,
         )

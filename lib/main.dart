@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/initial_bindings/initial_bindings.dart';
+import 'package:family_bazar_admin_panel/src/core/routes/app_pages.dart';
 import 'package:family_bazar_admin_panel/src/core/theme/app_theme.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/startup/app_initializer.dart';
 import 'package:flutter/foundation.dart';
@@ -83,13 +84,16 @@ class FamilyBazarAdminApp extends StatelessWidget {
             dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch, PointerDeviceKind.stylus, PointerDeviceKind.trackpad},
             physics: const BouncingScrollPhysics(),
           ),
-          initialRoute: 'AppRoutes.initial',
+          initialRoute: AppPages.initial,
           initialBinding: InitialBindings(),
-          getPages: [],
+          getPages: AppPages.routes,
+          unknownRoute: GetPage(
+            name: '/not-found',
+            page: () => const Scaffold(
+              body: Center(child: Text('404 - Route Not Found')),
+            ),
+          ),
           defaultTransition: Transition.fadeIn,
-          // Temporary placeholder until routing is active
-          home: const Scaffold(body: Center(child: CircularProgressIndicator())),
-
           builder: (context, widget) {
             // [Proactive Styling] Locks global text scaling so user browser settings don't destroy your layout
             return MediaQuery(

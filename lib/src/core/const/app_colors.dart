@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-class AppColors {
-  AppColors._(); // Private constructor to prevent instantiation
+@immutable
+abstract final class AppColors {
+  const AppColors._(); // Private constructor to prevent instantiation
 
   // ==========================================
   // BRAND COLORS (Extracted strictly from Logo)
