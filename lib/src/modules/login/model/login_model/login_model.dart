@@ -40,11 +40,22 @@ abstract class UserData with _$UserData {
 @freezed
 abstract class PermissionNode with _$PermissionNode {
   const factory PermissionNode({
+    @Default('') String name,
+    @Default('') String icon,
+    PermissionDetails? permissions,
+}) = _PermissionNode;
+
+  factory PermissionNode.fromJson(Map<String, dynamic> json) => _$PermissionNodeFromJson(json);
+}
+
+@freezed
+abstract class PermissionDetails with _$PermissionDetails {
+  const factory PermissionDetails({
     @Default(false) bool add,
     @Default(false) bool edit,
     @Default(false) bool delete,
     @Default(false) bool view,
-}) = _PermissionNode;
+}) = _PermissionDetails;
 
-  factory PermissionNode.fromJson(Map<String, dynamic> json) => _$PermissionNodeFromJson(json);
+  factory PermissionDetails.fromJson(Map<String, dynamic> json) => _$PermissionDetailsFromJson(json);
 }
