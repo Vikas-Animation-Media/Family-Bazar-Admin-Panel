@@ -1,8 +1,12 @@
+import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
+import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_coontroller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/controller/drawer_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/model/drawer_menu_model/drawer_menu_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+
 
 class DrawerView extends GetView<DashboardDrawerController> {
   const DrawerView({super.key});
@@ -11,23 +15,17 @@ class DrawerView extends GetView<DashboardDrawerController> {
   Widget build(BuildContext context) {
     return Drawer(
       elevation: 4.0,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero, // Square edges look premium for Web Admin Panels
-      ),
+      shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(0, 0)),
       child: Column(
         children: [
-          // 1. Static Header: No need to rebuild this
           _buildDrawerHeader(context),
 
-          // 2. Dynamic List Body
+          // Dynamic List Body
           Expanded(
             child: Obx(() {
-              // Show a loader if the menu is still parsing
               if (controller.menuItems.isEmpty) {
                 return const Center(child: CircularProgressIndicator());
               }
-
-              // Use Efficient Lists: Lazy loading for performance optimization
               return ListView.builder(
                 padding: EdgeInsets.zero,
                 itemCount: controller.menuItems.length,
@@ -39,95 +37,153 @@ class DrawerView extends GetView<DashboardDrawerController> {
             }),
           ),
 
-          // 3. Static Footer
-          _buildDrawerFooter(),
+          _buildDrawerFooter(context),
         ],
       ),
     );
   }
 
-  /// Builds the top branding/profile section
   Widget _buildDrawerHeader(BuildContext context) {
     return UserAccountsDrawerHeader(
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColorDark, // Syncs with your centralized theme
+        color: Theme.of(context).primaryColorDark,
       ),
-      accountName: const Text(
-        'Family Bazar Admin',
-        style: TextStyle(fontWeight: FontWeight.bold),
+      accountName: Text(
+        AppStrings.appName,
+        style: context.headingTextStyle,
       ),
-      accountEmail: const Text('Super Admin Role'),
-      currentAccountPicture: const CircleAvatar(
+      accountEmail: Text(
+        AppStrings.superAdminRole,
+        style: context.subTitleStyle,
+      ),
+      currentAccountPicture: CircleAvatar(
         backgroundColor: Colors.white,
-        child: Icon(Icons.admin_panel_settings_rounded, size: 40, color: Colors.blueGrey),
+        child: Icon(
+          Icons.admin_panel_settings_rounded,
+          size: context.responsiveSize(40, 40),
+          color: Colors.blueGrey,
+        ),
       ),
     );
   }
 
-  /// Evaluates whether to build an ExpansionTile (Master) or a normal ListTile
   Widget _buildMenuItem(BuildContext context, DrawerMenuModel item) {
     if (item.isExpansion && item.subItems != null) {
       return ExpansionTile(
-        leading: _buildIcon(item),
-        title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        // Recursively build sub-items
+        leading: _buildIcon(context, item),
+        title: Text(
+          item.title,
+          style: context.titleStyleRegular.copyWith(fontWeight: FontWeight.w600),
+        ),
         children: item.subItems!.map((subItem) => _buildSubMenuItem(context, subItem)).toList(),
       );
     }
 
     return ListTile(
-      leading: _buildIcon(item),
-      title: Text(item.title),
+      leading: _buildIcon(context, item),
+      title: Text(
+        item.title,
+        style: context.titleStyleRegular,
+      ),
       onTap: () {
         Get.find<DashboardController>().changeActiveMenu(item.identifier);
         if (Scaffold.of(context).hasDrawer && Scaffold.of(context).isDrawerOpen) {
-          Get.back(); // Automatically close drawer on mobile screens after selection
+          Get.back();
         }
       },
     );
   }
 
-  /// Builds indented sub-items inside Master categories
+  /// Builds indented sub-items inside Master categories dynamically
   Widget _buildSubMenuItem(BuildContext context, DrawerMenuModel item) {
     return ListTile(
-      contentPadding: const EdgeInsets.only(left: 56.0, right: 16.0), // Indented padding
-      leading: _buildIcon(item, size: 20.0),
-      title: Text(item.title, style: const TextStyle(fontSize: 13.0)),
+      contentPadding: EdgeInsets.only(
+        left: context.responsiveWidth(56, 56),
+        right: context.responsiveWidth(16, 16),
+      ),
+      leading: _buildIcon(context, item, size: context.responsiveSize(20, 20)),
+      title: Text(
+        item.title,
+        style: context.bodyTextStyle,
+      ),
       onTap: () {
         Get.find<DashboardController>().changeActiveMenu(item.identifier);
         if (Scaffold.of(context).hasDrawer && Scaffold.of(context).isDrawerOpen) {
-          Get.back(); // Automatically close drawer on mobile screens after selection
+          Get.back();
         }
       },
     );
   }
 
-  /// Zero-Tolerance Crash Handler for Network Images
-  Widget _buildIcon(DrawerMenuModel item, {double size = 24.0}) {
-    // Attempt to load network image if string exists
+  Widget _buildIcon(BuildContext context, DrawerMenuModel item, {double? size}) {
+    final double iconSize = size ?? context.responsiveSize(24, 24);
+
     if (item.icon != null && item.icon!.isNotEmpty) {
       return SizedBox(
-        width: size,
-        height: size,
+        width: iconSize,
+        height: iconSize,
         child: Image.network(
           item.icon!,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
-            // Defensive Tactics: If CORS blocks the image or the URL is dead, fallback silently
-            return Icon(item.fallbackIcon ?? Icons.error_outline, size: size, color: Colors.grey);
+            Sentry.addBreadcrumb(
+              Breadcrumb(
+                message: AppStrings.failedToLoadIcon,
+                category: 'ui.image_load',
+                level: SentryLevel.warning,
+                data: {'url': item.icon, 'menu_identifier': item.identifier},
+              ),
+            );
+
+            Sentry.captureMessage('${AppStrings.drawerMenuIconLoadFailure} ${item.identifier}', level: SentryLevel.warning);
+
+            return Icon(_getIconForIdentifier(item.identifier), size: iconSize, color: Colors.grey);
           },
         ),
       );
     }
-
-    // Default Native Icon Fallback
-    return Icon(item.fallbackIcon ?? Icons.circle_outlined, size: size, color: Colors.grey[700]);
+    return Icon(_getIconForIdentifier(item.identifier), size: iconSize, color: Colors.grey[700]);
   }
 
-  Widget _buildDrawerFooter() {
-    return const Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Text('Version 1.0.0', style: TextStyle(color: Colors.grey, fontSize: 12)),
+  IconData _getIconForIdentifier(String identifier) {
+    switch (identifier.toLowerCase()) {
+      case 'dashboard':
+        return Icons.dashboard_rounded;
+      case 'store':
+        return Icons.storefront_rounded;
+      case 'product':
+        return Icons.inventory_2_rounded;
+      case 'order':
+        return Icons.shopping_cart_rounded;
+      case 'customer':
+        return Icons.people_rounded;
+      case 'payment':
+        return Icons.payment_rounded;
+      case 'settings':
+        return Icons.settings_rounded;
+      case 'reports':
+        return Icons.analytics_rounded;
+      case 'delivery boy':
+        return Icons.delivery_dining_rounded;
+      case 'policy':
+        return Icons.policy_rounded;
+      case 'master_group':
+        return Icons.admin_panel_settings_rounded;
+      default:
+        if (identifier.toLowerCase().startsWith('master')) {
+          return Icons.subdirectory_arrow_right_rounded;
+        }
+        return Icons.circle_outlined;
+    }
+  }
+
+  Widget _buildDrawerFooter(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.all(context.responsiveSize(16, 16)),
+      child: Text(
+        AppStrings.appVersion,
+        style: context.subTitleStyle.copyWith(fontSize: context.responsiveSize(12, 12)),
+      ),
     );
   }
 }

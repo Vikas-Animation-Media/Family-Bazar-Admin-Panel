@@ -25,7 +25,7 @@ class DrawerMenuModel {
     IconData? fallbackIcon,
     List<DrawerMenuModel>? subItems,
     bool? isExpansion,
-}) {
+  }) {
     return DrawerMenuModel(
       title: title ?? this.title,
       identifier: identifier ?? this.identifier,
